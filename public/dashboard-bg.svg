@@ -1,0 +1,17 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1920" height="1080" fill="#0F172A"/>
+  <g filter="url(#blur0)">
+    <circle cx="316" cy="138" r="320" fill="#1D4ED8" fill-opacity="0.55"/>
+    <circle cx="1670" cy="240" r="290" fill="#0284C7" fill-opacity="0.45"/>
+    <circle cx="1400" cy="850" r="380" fill="#0EA5E9" fill-opacity="0.38"/>
+    <circle cx="600" cy="920" r="340" fill="#38BDF8" fill-opacity="0.3"/>
+    <circle cx="940" cy="480" r="280" fill="#0F766E" fill-opacity="0.24"/>
+  </g>
+  <defs>
+    <filter id="blur0" x="-350" y="-520" width="2610" height="2120" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+      <feGaussianBlur stdDeviation="160" result="effect1_foregroundBlur"/>
+    </filter>
+  </defs>
+</svg>

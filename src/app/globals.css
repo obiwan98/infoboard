@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+:root {
+  --background: #000000;
+  --foreground: #9ca3af;
+  --mm-text: #a3a3a3;
+  --mm-text-dimmed: #5f5f5f;
+  --mm-text-bright: #f5f5f5;
+  --mm-line: #3f3f46;
+  --mm-gap: 28px;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-roboto-condensed);
+  --font-mono: var(--font-roboto);
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  background-image: url("/dashboard-bg.svg");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  font-family: var(--font-roboto-condensed), Arial, Helvetica, sans-serif;
+}
+
+.smart-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.smart-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.smart-scroll.scroll-active {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--mm-text-dimmed) 65%, transparent) transparent;
+}
+
+.smart-scroll.scroll-active::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.smart-scroll.scroll-active::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.smart-scroll.scroll-active::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  background: linear-gradient(180deg, #57565a 0%, #3f3f46 100%);
+}
+
+.mm-shell {
+  border: 1px solid color-mix(in oklab, var(--mm-line) 75%, transparent);
+  background: color-mix(in oklab, black 88%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.mm-module {
+  border: 1px solid color-mix(in oklab, var(--mm-line) 68%, transparent);
+  background: color-mix(in oklab, black 80%, transparent);
+  backdrop-filter: blur(5px);
+}
+
+.mm-header {
+  color: var(--mm-text);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--mm-line);
+}
+
+.mm-bright {
+  color: var(--mm-text-bright);
+}
+
+.mm-normal {
+  color: var(--mm-text);
+}
+
+.mm-dim {
+  color: var(--mm-text-dimmed);
+}
