@@ -1,18 +1,5 @@
 import type { Metadata } from "next";
-import { Roboto, Roboto_Condensed } from "next/font/google";
 import "./globals.css";
-
-const robotoCondensed = Roboto_Condensed({
-  variable: "--font-roboto-condensed",
-  subsets: ["latin"],
-  weight: ["300", "400", "700"],
-});
-
-const roboto = Roboto({
-  variable: "--font-roboto",
-  subsets: ["latin"],
-  weight: ["100", "300", "400", "700"],
-});
 
 export const metadata: Metadata = {
   title: "InfoBoard Dashboard",
@@ -26,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={`${robotoCondensed.variable} ${roboto.variable} antialiased`}>
+      <body className="antialiased">
         {children}
       </body>
     </html>

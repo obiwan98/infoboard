@@ -16,19 +16,11 @@ function getMonthMatrix(date: Date) {
   return cells;
 }
 
-const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 type HolidayResponse = {
   date: string;
   name: string;
-};
-
-type CalendarEventResponse = {
-  title: string;
-  start: string;
-  end: string;
-  location: string;
-  source: string;
 };
 
 export function CalendarWidget() {
@@ -40,8 +32,6 @@ export function CalendarWidget() {
   const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
   const cells = getMonthMatrix(viewDate);
   const [holidays, setHolidays] = useState<Record<number, string>>({});
-  const [events, setEvents] = useState<CalendarEventResponse[]>([]);
-  const [calendarConfigured, setCalendarConfigured] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -69,34 +59,6 @@ export function CalendarWidget() {
     };
   }, [month, year]);
 
-  useEffect(() => {
-    let mounted = true;
-    const from = new Date(year, month, 1);
-    const to = new Date(year, month + 1, 0, 23, 59, 59);
-
-    const loadEvents = async () => {
-      const response = await fetch(
-        `/api/calendar-events?from=${from.toISOString()}&to=${to.toISOString()}`,
-      );
-      if (!response.ok) return;
-
-      const payload = (await response.json()) as {
-        configured: boolean;
-        events: CalendarEventResponse[];
-      };
-
-      if (mounted) {
-        setCalendarConfigured(payload.configured);
-        setEvents(payload.events);
-      }
-    };
-
-    void loadEvents();
-    return () => {
-      mounted = false;
-    };
-  }, [month, year]);
-
   const title = new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "long",
@@ -111,12 +73,12 @@ export function CalendarWidget() {
   };
 
   return (
-    <div className="mm-module h-full rounded-md p-5 md:p-6">
+    <div className="mm-module rounded-md p-5 md:p-6">
       <p className="mm-header pb-1 text-[11px]">Calendar</p>
       <div className="mt-3 flex items-center justify-between">
         <button
           type="button"
-          aria-label="이전 달"
+          aria-label="previous month"
           onClick={goPrevMonth}
           className="mm-normal rounded px-2 py-1 text-xl leading-none hover:text-white"
         >
@@ -125,7 +87,7 @@ export function CalendarWidget() {
         <p className="mm-bright text-2xl font-normal">{title}</p>
         <button
           type="button"
-          aria-label="다음 달"
+          aria-label="next month"
           onClick={goNextMonth}
           className="mm-normal rounded px-2 py-1 text-xl leading-none hover:text-white"
         >
@@ -169,49 +131,25 @@ export function CalendarWidget() {
             <div
               key={`${day}-${index}`}
               title={holidayName ?? ""}
-              className={`relative flex aspect-square flex-col items-center justify-center gap-1 border-b border-r border-[color:var(--mm-line)] px-1 text-sm font-medium ${dayTextClass} ${
-                isToday ? "underline underline-offset-4" : ""
+              className={`relative flex h-12 flex-col items-center justify-center gap-1 border-b border-r border-[color:var(--mm-line)] px-1 text-sm font-medium md:h-14 ${dayTextClass} ${
+                isToday
+                  ? "bg-sky-300/15 text-base font-semibold underline underline-offset-4 ring-1 ring-sky-300/40 md:text-lg"
+                  : ""
               }`}
             >
-              <span>{day ?? ""}</span>
+              <span className={isToday ? "text-lg leading-none md:text-xl" : "leading-none"}>
+                {day ?? ""}
+              </span>
               {isHoliday ? (
-                <span className="max-w-full truncate text-[10px] leading-none text-amber-300">{holidayName}</span>
+                <span className="max-w-full truncate text-[10px] leading-none text-amber-300">
+                  {holidayName}
+                </span>
               ) : (
                 isWeekend && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-white/20" />
               )}
             </div>
           );
         })}
-      </div>
-
-      <div className="mt-4 border-t border-[color:var(--mm-line)] pt-3">
-        <p className="mm-header pb-1 text-[11px]">Upcoming</p>
-        {!calendarConfigured && (
-          <p className="mm-dim mt-2 text-xs">Set `CALENDAR_ICS_URLS` to show events.</p>
-        )}
-        {calendarConfigured && events.length === 0 && (
-          <p className="mm-dim mt-2 text-xs">No events in this month.</p>
-        )}
-        {calendarConfigured && events.length > 0 && (
-          <ul className="mt-2 space-y-2">
-            {events.slice(0, 4).map((event) => (
-              <li key={`${event.title}-${event.start}`} className="border-b border-[color:var(--mm-line)] pb-2 last:border-b-0">
-                <p className="mm-normal truncate text-xs" title={event.title}>
-                  {event.title}
-                </p>
-                <p className="mm-dim mt-1 text-[11px]">
-                  {new Intl.DateTimeFormat("ko-KR", {
-                    month: "2-digit",
-                    day: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }).format(new Date(event.start))}{" "}
-                  · {event.source}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
     </div>
   );

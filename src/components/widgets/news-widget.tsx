@@ -79,9 +79,9 @@ export function NewsWidget() {
       <div ref={listRef} className="smart-scroll mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
         {error && <p className="mt-1 text-sm text-red-300">{error}</p>}
         {!error && visibleItems.length === 0 && <p className="mm-normal mt-1 text-sm">Loading headlines...</p>}
-        <ul className="space-y-2">
+        <ul className="divide-y divide-[color:var(--mm-line)]">
           {visibleItems.map((item) => (
-            <li key={`${item.link}-${item.pubDate}`} className="border-b border-[color:var(--mm-line)] pb-2 last:border-b-0">
+            <li key={`${item.link}-${item.pubDate}`} className="flex h-14 flex-col justify-center py-1">
               <a
                 href={item.link}
                 target="_blank"
