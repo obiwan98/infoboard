@@ -229,18 +229,18 @@ export function VerticalMovieScreen() {
       {weather && (
         <>
           <section className="pointer-events-none absolute left-4 top-4 z-10 text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.7)] md:left-6 md:top-6">
-            <p className="text-6xl font-light leading-none tracking-tight md:text-7xl">{timeText}</p>
-            <p className="mt-1 text-3xl font-normal leading-none md:text-4xl">{weekdayText}</p>
-            <p className="mt-1 text-2xl font-light leading-none text-white/90 md:text-3xl">{monthDayText}</p>
+            <p className="text-6xl font-semibold leading-none tracking-tight md:text-7xl">{timeText}</p>
+            <p className="mt-1 text-3xl font-semibold leading-none md:text-4xl">{weekdayText}</p>
+            <p className="mt-1 text-2xl font-semibold leading-none text-white/90 md:text-3xl">{monthDayText}</p>
           </section>
           <section className="pointer-events-none absolute right-4 top-4 z-10 text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.7)] md:right-6 md:top-6">
             <div className="flex items-center gap-2 md:gap-3">
-              <p className="text-6xl font-light leading-none tracking-tight md:text-7xl">
+              <p className="text-6xl font-semibold leading-none tracking-tight md:text-7xl">
                 {Math.round(weather.temperature)}&deg;
               </p>
-              <p className="text-6xl font-light leading-none md:text-7xl">{weatherGlyph}</p>
+              <p className="text-6xl font-semibold leading-none md:text-7xl">{weatherGlyph}</p>
             </div>
-            <p className="mt-1 text-right text-xl font-light leading-none text-white/90 md:text-2xl">{weather.city}</p>
+            <p className="mt-1 text-right text-xl font-semibold leading-none text-white/90 md:text-2xl">{weather.city}</p>
           </section>
         </>
       )}
