@@ -18,9 +18,9 @@ const DEFAULT_ORDER: WidgetId[] = ["clock", "weather", "news", "calendar"];
 const STORAGE_KEY = "infoboard-layout-v1";
 
 const widgetFrameClass: Record<WidgetId, string> = {
-  clock: "col-span-1 row-span-1 min-h-[220px] w-full min-w-0 min-[480px]:col-span-1 min-[480px]:row-span-1",
-  weather: "col-span-1 row-span-1 min-h-[220px] w-full min-w-0 min-[480px]:col-span-1 min-[480px]:row-span-1",
-  news: "col-span-1 row-span-1 min-h-[252px] w-full min-w-0 min-[480px]:col-span-2 min-[480px]:row-span-1",
+  clock: "col-span-1 row-span-1 min-h-[188px] w-full min-w-0 min-[480px]:col-span-1 min-[480px]:row-span-1",
+  weather: "col-span-1 row-span-1 min-h-[188px] w-full min-w-0 min-[480px]:col-span-1 min-[480px]:row-span-1",
+  news: "col-span-1 row-span-1 min-h-[216px] w-full min-w-0 min-[480px]:col-span-2 min-[480px]:row-span-1",
   calendar: "col-span-1 row-span-1 w-full min-w-0 min-[480px]:col-span-2 min-[480px]:row-span-1",
 };
 

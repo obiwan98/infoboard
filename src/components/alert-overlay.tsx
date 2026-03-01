@@ -122,17 +122,17 @@ export function AlertOverlay() {
   if (!alert) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-black/35 backdrop-blur-[2px]">
+    <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-white/45 backdrop-blur-[3px]">
       <div
-        className={`pointer-events-auto w-[min(90%,520px)] rounded-md border p-5 shadow-2xl ${
+        className={`pointer-events-auto w-[min(90%,520px)] rounded-xl border p-5 shadow-2xl ${
           alert.level === "warning"
-            ? "border-amber-300/40 bg-black/85"
-            : "border-[color:var(--mm-line)] bg-black/85"
+            ? "border-amber-300/70 bg-white/90"
+            : "border-[color:var(--mm-line)] bg-white/90"
         }`}
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className={`text-sm uppercase tracking-[0.08em] ${alert.level === "warning" ? "text-amber-300" : "mm-bright"}`}>
+            <p className={`text-sm uppercase tracking-[0.08em] ${alert.level === "warning" ? "text-amber-700" : "mm-bright"}`}>
               {alert.title}
             </p>
             <p className="mm-normal mt-2 text-base">{alert.message}</p>
@@ -140,7 +140,7 @@ export function AlertOverlay() {
           <button
             type="button"
             onClick={() => setAlert(null)}
-            className="mm-dim rounded px-2 py-1 text-sm hover:text-white"
+            className="mm-dim rounded px-2 py-1 text-sm hover:text-slate-900"
             aria-label="close alert"
           >
             close

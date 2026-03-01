@@ -75,8 +75,7 @@ export function NewsWidget() {
 
   return (
     <div className="mm-module flex h-full min-h-0 flex-col rounded-md p-5 md:p-6">
-      <p className="mm-header pb-1 text-[11px]">News Feed</p>
-      <div ref={listRef} className="smart-scroll mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
+      <div ref={listRef} className="smart-scroll min-h-0 flex-1 overflow-y-auto pr-1">
         {error && <p className="mt-1 text-sm text-red-300">{error}</p>}
         {!error && visibleItems.length === 0 && <p className="mm-normal mt-1 text-sm">Loading headlines...</p>}
         <ul className="divide-y divide-[color:var(--mm-line)]">
@@ -86,7 +85,7 @@ export function NewsWidget() {
                 href={item.link}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="mm-normal block truncate text-sm hover:text-white"
+                className="mm-normal block truncate text-sm hover:text-slate-900"
                 title={item.title}
               >
                 {item.title}

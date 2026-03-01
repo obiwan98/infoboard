@@ -91,11 +91,10 @@ export function WeatherWidget() {
 
   return (
     <div className="mm-module h-full rounded-md p-5 md:p-6">
-      <p className="mm-header pb-1 text-[11px]">Weather</p>
       {!data && !error && <p className="mm-normal mt-6 text-lg">Loading weather...</p>}
       {error && <p className="mt-6 text-lg text-red-300">{error}</p>}
       {data && (
-        <div className="mt-3 grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col items-center justify-center text-center">
             <p className="mm-normal text-lg">{data.city}</p>
             <p className="mm-bright mt-2 text-6xl font-light tracking-tight">{Math.round(data.temperature)}&deg;</p>

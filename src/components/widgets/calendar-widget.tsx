@@ -74,8 +74,7 @@ export function CalendarWidget() {
 
   return (
     <div className="mm-module rounded-md p-5 md:p-6">
-      <p className="mm-header pb-1 text-[11px]">Calendar</p>
-      <div className="mt-3 flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <button
           type="button"
           aria-label="previous month"
