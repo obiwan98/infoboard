@@ -8,6 +8,8 @@ type WeatherApiResponse = {
   weatherCode: number;
 };
 
+let lastWeatherSnapshot: WeatherApiResponse | null = null;
+
 function getWeatherGlyph(code: number): string {
   if (code === 0 || code === 1) return "\u2600";
   if (code === 2 || code === 3) return "\u2601";
@@ -27,11 +29,9 @@ type YouTubePlayer = {
   destroy: () => void;
   mute: () => void;
   playVideo: () => void;
-  nextVideo: () => void;
   playVideoAt?: (index: number) => void;
   getPlaylist?: () => string[];
   setLoop?: (loopPlaylists: boolean) => void;
-  setShuffle?: (shufflePlaylist: boolean) => void;
 };
 
 type YouTubePlayerEvent = {
@@ -48,13 +48,10 @@ type YouTubeNamespace = {
       playerVars: Record<string, number | string>;
       events: {
         onReady: (event: YouTubePlayerEvent) => void;
-        onStateChange: (event: YouTubePlayerEvent) => void;
+        onStateChange?: (event: YouTubePlayerEvent) => void;
       };
     },
   ) => YouTubePlayer;
-  PlayerState: {
-    ENDED: number;
-  };
 };
 
 declare global {
@@ -116,7 +113,7 @@ export function VerticalMovieScreen() {
   const currentPlaylistUrl = PLAYLIST_URLS[0]?.trim() ?? "";
   const playlistId = useMemo(() => extractPlaylistId(currentPlaylistUrl), [currentPlaylistUrl]);
 
-  const [weather, setWeather] = useState<WeatherApiResponse | null>(null);
+  const [weather, setWeather] = useState<WeatherApiResponse | null>(() => lastWeatherSnapshot);
   const [now, setNow] = useState(() => new Date());
   const weatherGlyph = useMemo(() => getWeatherGlyph(weather?.weatherCode ?? 0), [weather?.weatherCode]);
   const timeText = useMemo(
@@ -135,6 +132,7 @@ export function VerticalMovieScreen() {
         if (!response.ok) return;
 
         const data: WeatherApiResponse = await response.json();
+        lastWeatherSnapshot = data;
         if (mounted) setWeather(data);
       } catch {
         // Ignore transient weather failures for the overlay.
@@ -188,7 +186,6 @@ export function VerticalMovieScreen() {
           onReady: (event) => {
             event.target.mute();
             event.target.setLoop?.(true);
-            event.target.setShuffle?.(true);
             window.setTimeout(() => {
               const playlistItems = event.target.getPlaylist?.() ?? [];
               if (playlistItems.length > 0 && event.target.playVideoAt) {
@@ -198,11 +195,6 @@ export function VerticalMovieScreen() {
               }
               event.target.playVideo();
             }, 200);
-          },
-          onStateChange: (event) => {
-            if (window.YT && event.data === window.YT.PlayerState.ENDED) {
-              event.target.nextVideo();
-            }
           },
         },
       });
@@ -217,7 +209,7 @@ export function VerticalMovieScreen() {
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-black">
       {playlistId ? (
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 z-0">
           <div ref={playerHostRef} className="h-full w-full" />
         </div>
       ) : (
@@ -226,14 +218,17 @@ export function VerticalMovieScreen() {
         </div>
       )}
 
-      {weather && (
-        <>
-          <section className="pointer-events-none absolute left-4 top-4 z-10 text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.7)] md:left-6 md:top-6">
-            <p className="text-6xl font-semibold leading-none tracking-tight md:text-7xl">{timeText}</p>
-            <p className="mt-1 text-3xl font-semibold leading-none md:text-4xl">{weekdayText}</p>
-            <p className="mt-1 text-2xl font-semibold leading-none text-white/90 md:text-3xl">{monthDayText}</p>
-          </section>
-          <section className="pointer-events-none absolute right-4 top-4 z-10 text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.7)] md:right-6 md:top-6">
+      <div
+        className="pointer-events-none absolute inset-0 z-20 isolate text-white"
+        style={{ transform: "translateZ(0)" }}
+      >
+        <section className="absolute left-4 top-4 [text-shadow:0_2px_10px_rgba(0,0,0,0.7)] md:left-6 md:top-6">
+          <p className="text-6xl font-semibold leading-none tracking-tight md:text-7xl">{timeText}</p>
+          <p className="mt-1 text-3xl font-semibold leading-none md:text-4xl">{weekdayText}</p>
+          <p className="mt-1 text-2xl font-semibold leading-none text-white/90 md:text-3xl">{monthDayText}</p>
+        </section>
+        {weather && (
+          <section className="absolute right-4 top-4 [text-shadow:0_2px_10px_rgba(0,0,0,0.7)] md:right-6 md:top-6">
             <div className="flex items-center gap-2 md:gap-3">
               <p className="text-6xl font-semibold leading-none tracking-tight md:text-7xl">
                 {Math.round(weather.temperature)}&deg;
@@ -242,8 +237,8 @@ export function VerticalMovieScreen() {
             </div>
             <p className="mt-1 text-right text-xl font-semibold leading-none text-white/90 md:text-2xl">{weather.city}</p>
           </section>
-        </>
-      )}
+        )}
+      </div>
     </main>
   );
 }
