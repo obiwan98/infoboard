@@ -1,5 +1,5 @@
-import { HorizontalMovieScreen } from "@/components/horizontal-movie-screen";
+import { HorizontalMovieScreenClient } from "@/components/horizontal-movie-screen-client";
 
 export default function HorizontalMoviePage() {
-  return <HorizontalMovieScreen />;
+  return <HorizontalMovieScreenClient />;
 }

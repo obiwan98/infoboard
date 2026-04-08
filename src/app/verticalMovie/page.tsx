@@ -1,5 +1,5 @@
-import { VerticalMovieScreen } from "@/components/vertical-movie-screen";
+import { VerticalMovieScreenClient } from "@/components/vertical-movie-screen-client";
 
 export default function VerticalMoviePage() {
-  return <VerticalMovieScreen />;
+  return <VerticalMovieScreenClient />;
 }
