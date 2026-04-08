@@ -31,6 +31,7 @@ type YouTubePlayer = {
   playVideo: () => void;
   playVideoAt?: (index: number) => void;
   getPlaylist?: () => string[];
+  getPlaylistIndex?: () => number;
   setLoop?: (loopPlaylists: boolean) => void;
 };
 
@@ -144,6 +145,19 @@ export function HorizontalMovieScreen() {
 
     let disposed = false;
     let player: YouTubePlayer | null = null;
+    const handlePlaylistEnded = (event: YouTubePlayerEvent) => {
+      if (event.data !== 0) return;
+
+      const playlistItems = event.target.getPlaylist?.() ?? [];
+      const currentIndex = event.target.getPlaylistIndex?.() ?? -1;
+      if (playlistItems.length === 0 || currentIndex !== playlistItems.length - 1 || !event.target.playVideoAt) {
+        return;
+      }
+
+      window.setTimeout(() => {
+        event.target.playVideoAt?.(0);
+      }, 150);
+    };
 
     void loadYouTubeIframeApi().then(() => {
       if (disposed || !window.YT || !playerHostRef.current) return;
@@ -168,15 +182,10 @@ export function HorizontalMovieScreen() {
             event.target.mute();
             event.target.setLoop?.(true);
             window.setTimeout(() => {
-              const playlistItems = event.target.getPlaylist?.() ?? [];
-              if (playlistItems.length > 0 && event.target.playVideoAt) {
-                const randomIndex = Math.floor(Math.random() * playlistItems.length);
-                event.target.playVideoAt(randomIndex);
-                return;
-              }
               event.target.playVideo();
             }, 200);
           },
+          onStateChange: handlePlaylistEnded,
         },
       });
     });
