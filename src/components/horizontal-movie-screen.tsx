@@ -24,20 +24,23 @@ function getWeatherGlyph(code: number): string {
 const PLAYLIST_URLS = [
   "https://www.youtube.com/watch?v=ko70cExuzZM&list=PL0P7WZuP1QiMr3gPtmNalDWl6Pvw29grs",
 ];
+const SHUFFLE_PLAYLIST = true;
 
 type YouTubePlayer = {
   destroy: () => void;
   mute: () => void;
   playVideo: () => void;
+  nextVideo?: () => void;
   playVideoAt?: (index: number) => void;
   getPlaylist?: () => string[];
   getPlaylistIndex?: () => number;
   setLoop?: (loopPlaylists: boolean) => void;
+  setShuffle?: (shufflePlaylist: boolean) => void;
 };
 
 type YouTubePlayerEvent = {
   target: YouTubePlayer;
-  data: number;
+  data?: number;
 };
 
 type YouTubeNamespace = {
@@ -50,6 +53,8 @@ type YouTubeNamespace = {
       events: {
         onReady: (event: YouTubePlayerEvent) => void;
         onStateChange?: (event: YouTubePlayerEvent) => void;
+        onError?: (event: YouTubePlayerEvent) => void;
+        onAutoplayBlocked?: (event: YouTubePlayerEvent) => void;
       };
     },
   ) => YouTubePlayer;
@@ -145,18 +150,11 @@ export function HorizontalMovieScreen() {
 
     let disposed = false;
     let player: YouTubePlayer | null = null;
-    const handlePlaylistEnded = (event: YouTubePlayerEvent) => {
-      if (event.data !== 0) return;
-
-      const playlistItems = event.target.getPlaylist?.() ?? [];
-      const currentIndex = event.target.getPlaylistIndex?.() ?? -1;
-      if (playlistItems.length === 0 || currentIndex !== playlistItems.length - 1 || !event.target.playVideoAt) {
-        return;
-      }
-
+    const schedulePlaybackRecovery = (target: YouTubePlayer, delayMs: number) => {
       window.setTimeout(() => {
-        event.target.playVideoAt?.(0);
-      }, 150);
+        if (disposed) return;
+        target.nextVideo?.();
+      }, delayMs);
     };
 
     void loadYouTubeIframeApi().then(() => {
@@ -181,11 +179,21 @@ export function HorizontalMovieScreen() {
           onReady: (event) => {
             event.target.mute();
             event.target.setLoop?.(true);
+            event.target.setShuffle?.(SHUFFLE_PLAYLIST);
             window.setTimeout(() => {
               event.target.playVideo();
             }, 200);
           },
-          onStateChange: handlePlaylistEnded,
+          onError: (event) => {
+            schedulePlaybackRecovery(event.target, 400);
+          },
+          onAutoplayBlocked: (event) => {
+            window.setTimeout(() => {
+              if (disposed) return;
+              event.target.mute();
+              event.target.playVideo();
+            }, 400);
+          },
         },
       });
     });
