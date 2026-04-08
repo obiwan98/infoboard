@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { appendPlayerLog } from "@/lib/player-log";
+
 type WeatherApiResponse = {
   city: string;
   temperature: number;
@@ -24,16 +26,22 @@ function getWeatherGlyph(code: number): string {
 const PLAYLIST_URLS = [
   "https://www.youtube.com/watch?v=ko70cExuzZM&list=PL0P7WZuP1QiMr3gPtmNalDWl6Pvw29grs",
 ];
+const PLAYER_SCREEN = "horizontal";
+const HEARTBEAT_INTERVAL_MS = 30000;
 const SHUFFLE_PLAYLIST = true;
 
 type YouTubePlayer = {
   destroy: () => void;
-  mute: () => void;
-  playVideo: () => void;
-  nextVideo?: () => void;
-  playVideoAt?: (index: number) => void;
+  getCurrentTime?: () => number;
+  getDuration?: () => number;
+  getPlayerState?: () => number;
   getPlaylist?: () => string[];
   getPlaylistIndex?: () => number;
+  getVideoUrl?: () => string;
+  mute: () => void;
+  nextVideo?: () => void;
+  playVideo: () => void;
+  playVideoAt?: (index: number) => void;
   setLoop?: (loopPlaylists: boolean) => void;
   setShuffle?: (shufflePlaylist: boolean) => void;
 };
@@ -66,6 +74,40 @@ declare global {
     onYouTubeIframeAPIReady?: () => void;
     __ytIframeApiPromise?: Promise<void>;
   }
+}
+
+function describePlayerState(state?: number | null) {
+  switch (state) {
+    case -1:
+      return "unstarted";
+    case 0:
+      return "ended";
+    case 1:
+      return "playing";
+    case 2:
+      return "paused";
+    case 3:
+      return "buffering";
+    case 5:
+      return "cued";
+    default:
+      return "unknown";
+  }
+}
+
+function getPlayerSnapshot(target: YouTubePlayer) {
+  const playlist = target.getPlaylist?.() ?? [];
+  const playerState = target.getPlayerState?.() ?? null;
+
+  return {
+    currentTimeSec: target.getCurrentTime ? Math.round(target.getCurrentTime()) : null,
+    durationSec: target.getDuration ? Math.round(target.getDuration()) : null,
+    playerState,
+    playerStateLabel: describePlayerState(playerState),
+    playlistIndex: target.getPlaylistIndex?.() ?? null,
+    playlistSize: playlist.length,
+    videoUrl: target.getVideoUrl?.() ?? null,
+  };
 }
 
 function extractPlaylistId(input: string): string | null {
@@ -149,10 +191,31 @@ export function HorizontalMovieScreen() {
     if (!playlistId || !playerHostRef.current) return;
 
     let disposed = false;
+    let heartbeatTimer: number | null = null;
     let player: YouTubePlayer | null = null;
-    const schedulePlaybackRecovery = (target: YouTubePlayer, delayMs: number) => {
+
+    appendPlayerLog({
+      event: "player_init",
+      details: { playlistId, shuffle: SHUFFLE_PLAYLIST },
+      screen: PLAYER_SCREEN,
+    });
+
+    const schedulePlaybackRecovery = (target: YouTubePlayer, delayMs: number, reason: string, details?: Record<string, unknown>) => {
+      appendPlayerLog({
+        event: "recovery_scheduled",
+        details: { delayMs, reason, ...details, ...getPlayerSnapshot(target) },
+        level: "warn",
+        screen: PLAYER_SCREEN,
+      });
+
       window.setTimeout(() => {
         if (disposed) return;
+        appendPlayerLog({
+          event: "recovery_next_video",
+          details: { reason, ...getPlayerSnapshot(target) },
+          level: "warn",
+          screen: PLAYER_SCREEN,
+        });
         target.nextVideo?.();
       }, delayMs);
     };
@@ -164,7 +227,7 @@ export function HorizontalMovieScreen() {
         width: "100%",
         height: "100%",
         playerVars: {
-          autoplay: 1,
+          autoplay: 0,
           controls: 0,
           rel: 0,
           modestbranding: 1,
@@ -180,16 +243,68 @@ export function HorizontalMovieScreen() {
             event.target.mute();
             event.target.setLoop?.(true);
             event.target.setShuffle?.(SHUFFLE_PLAYLIST);
+            appendPlayerLog({
+              event: "player_ready",
+              details: { shuffle: SHUFFLE_PLAYLIST, ...getPlayerSnapshot(event.target) },
+              screen: PLAYER_SCREEN,
+            });
+
+            heartbeatTimer = window.setInterval(() => {
+              appendPlayerLog({
+                event: "heartbeat",
+                details: getPlayerSnapshot(event.target),
+                screen: PLAYER_SCREEN,
+              });
+            }, HEARTBEAT_INTERVAL_MS);
+
             window.setTimeout(() => {
+              appendPlayerLog({
+                event: "playback_start_requested",
+                details: { shuffledStart: SHUFFLE_PLAYLIST, ...getPlayerSnapshot(event.target) },
+                screen: PLAYER_SCREEN,
+              });
+              if (SHUFFLE_PLAYLIST && event.target.playVideoAt) {
+                event.target.playVideoAt(0);
+                return;
+              }
               event.target.playVideo();
             }, 200);
           },
+          onStateChange: (event) => {
+            appendPlayerLog({
+              event: "state_change",
+              details: {
+                eventState: event.data ?? null,
+                eventStateLabel: describePlayerState(event.data),
+                ...getPlayerSnapshot(event.target),
+              },
+              screen: PLAYER_SCREEN,
+            });
+          },
           onError: (event) => {
-            schedulePlaybackRecovery(event.target, 400);
+            appendPlayerLog({
+              event: "player_error",
+              details: { errorCode: event.data ?? null, ...getPlayerSnapshot(event.target) },
+              level: "error",
+              screen: PLAYER_SCREEN,
+            });
+            schedulePlaybackRecovery(event.target, 400, "player_error", { errorCode: event.data ?? null });
           },
           onAutoplayBlocked: (event) => {
+            appendPlayerLog({
+              event: "autoplay_blocked",
+              details: getPlayerSnapshot(event.target),
+              level: "warn",
+              screen: PLAYER_SCREEN,
+            });
             window.setTimeout(() => {
               if (disposed) return;
+              appendPlayerLog({
+                event: "autoplay_retry",
+                details: getPlayerSnapshot(event.target),
+                level: "warn",
+                screen: PLAYER_SCREEN,
+              });
               event.target.mute();
               event.target.playVideo();
             }, 400);
@@ -200,6 +315,14 @@ export function HorizontalMovieScreen() {
 
     return () => {
       disposed = true;
+      if (heartbeatTimer) {
+        window.clearInterval(heartbeatTimer);
+      }
+      appendPlayerLog({
+        event: "player_dispose",
+        details: player ? getPlayerSnapshot(player) : { playlistId },
+        screen: PLAYER_SCREEN,
+      });
       player?.destroy();
     };
   }, [playlistId]);
