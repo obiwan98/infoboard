@@ -28,6 +28,7 @@ const PLAYLIST_URLS = [
 ];
 const PLAYER_SCREEN = "vertical";
 const HEARTBEAT_INTERVAL_MS = 30000;
+const STALL_HEARTBEAT_THRESHOLD = 2;
 const SHUFFLE_PLAYLIST = true;
 
 type YouTubePlayer = {
@@ -211,6 +212,9 @@ export function VerticalMovieScreen() {
 
     let disposed = false;
     let heartbeatTimer: number | null = null;
+    let stalledHeartbeatCount = 0;
+    let lastHeartbeatTime: number | null = null;
+    let lastHeartbeatVideoUrl: string | null = null;
     let player: YouTubePlayer | null = null;
 
     appendPlayerLog({
@@ -269,11 +273,48 @@ export function VerticalMovieScreen() {
             });
 
             heartbeatTimer = window.setInterval(() => {
+              const snapshot = getPlayerSnapshot(event.target);
+              const isSameVideo = snapshot.videoUrl === lastHeartbeatVideoUrl;
+              const isProgressStalled =
+                (snapshot.playerState === 1 || snapshot.playerState === 3) &&
+                snapshot.currentTimeSec !== null &&
+                lastHeartbeatTime !== null &&
+                snapshot.currentTimeSec <= lastHeartbeatTime &&
+                isSameVideo;
+
+              if (isProgressStalled) {
+                stalledHeartbeatCount += 1;
+              } else {
+                stalledHeartbeatCount = 0;
+              }
+
+              lastHeartbeatTime = snapshot.currentTimeSec;
+              lastHeartbeatVideoUrl = snapshot.videoUrl;
+
               appendPlayerLog({
                 event: "heartbeat",
-                details: getPlayerSnapshot(event.target),
+                details: {
+                  stalledHeartbeatCount,
+                  ...snapshot,
+                },
                 screen: PLAYER_SCREEN,
               });
+
+              if (stalledHeartbeatCount >= STALL_HEARTBEAT_THRESHOLD) {
+                appendPlayerLog({
+                  event: "stalled_detected",
+                  details: {
+                    stalledHeartbeatCount,
+                    ...snapshot,
+                  },
+                  level: "warn",
+                  screen: PLAYER_SCREEN,
+                });
+                stalledHeartbeatCount = 0;
+                schedulePlaybackRecovery(event.target, 0, "stalled_heartbeat", {
+                  stalledHeartbeatCount: STALL_HEARTBEAT_THRESHOLD,
+                });
+              }
             }, HEARTBEAT_INTERVAL_MS);
 
             window.setTimeout(() => {
@@ -292,6 +333,9 @@ export function VerticalMovieScreen() {
             }, 200);
           },
           onStateChange: (event) => {
+            stalledHeartbeatCount = 0;
+            lastHeartbeatTime = null;
+            lastHeartbeatVideoUrl = event.target.getVideoUrl?.() ?? null;
             appendPlayerLog({
               event: "state_change",
               details: {
