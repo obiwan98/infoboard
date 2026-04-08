@@ -208,6 +208,48 @@ export function VerticalMovieScreen() {
   }, []);
 
   useEffect(() => {
+    const logLifecycleEvent = (event: string, details?: Record<string, unknown>) => {
+      appendPlayerLog({
+        event,
+        details,
+        level: "warn",
+        sendToServer: true,
+        screen: PLAYER_SCREEN,
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        logLifecycleEvent("page_hidden", { visibilityState: document.visibilityState });
+      }
+    };
+
+    const handlePageHide = () => {
+      logLifecycleEvent("pagehide");
+    };
+
+    const handleFreeze = () => {
+      logLifecycleEvent("page_freeze");
+    };
+
+    const handleOffline = () => {
+      logLifecycleEvent("network_offline");
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("freeze", handleFreeze as EventListener);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("freeze", handleFreeze as EventListener);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!playlistId || !playerHostRef.current) return;
 
     let disposed = false;
@@ -308,6 +350,7 @@ export function VerticalMovieScreen() {
                     ...snapshot,
                   },
                   level: "warn",
+                  sendToServer: true,
                   screen: PLAYER_SCREEN,
                 });
                 stalledHeartbeatCount = 0;
@@ -351,6 +394,7 @@ export function VerticalMovieScreen() {
               event: "player_error",
               details: { errorCode: event.data ?? null, ...getPlayerSnapshot(event.target) },
               level: "error",
+              sendToServer: true,
               screen: PLAYER_SCREEN,
             });
             schedulePlaybackRecovery(event.target, 400, "player_error", { errorCode: event.data ?? null });
@@ -360,6 +404,7 @@ export function VerticalMovieScreen() {
               event: "autoplay_blocked",
               details: getPlayerSnapshot(event.target),
               level: "warn",
+              sendToServer: true,
               screen: PLAYER_SCREEN,
             });
             window.setTimeout(() => {

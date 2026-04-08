@@ -70,6 +70,7 @@ export function appendPlayerLog(input: {
   details?: Record<string, unknown>;
   event: string;
   level?: "error" | "info" | "warn";
+  sendToServer?: boolean;
   screen: string;
 }) {
   if (typeof window === "undefined") return;
@@ -88,7 +89,9 @@ export function appendPlayerLog(input: {
   const logs = readStoredLogs();
   logs.unshift(entry);
   writeStoredLogs(logs);
-  postPlayerLog(entry);
+  if (input.sendToServer) {
+    postPlayerLog(entry);
+  }
 
   const logger = entry.level === "error" ? console.error : entry.level === "warn" ? console.warn : console.info;
   logger(`[player:${entry.screen}] ${entry.event}`, entry.details ?? {});
