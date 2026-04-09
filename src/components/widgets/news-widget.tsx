@@ -85,7 +85,7 @@ export function NewsWidget() {
                 href={item.link}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="mm-normal block truncate text-sm hover:text-slate-900"
+                className="mm-normal block truncate text-sm transition-colors hover:text-white"
                 title={item.title}
               >
                 {item.title}
