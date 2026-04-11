@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { EdgeNavigation } from "@/components/edge-navigation";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,6 +15,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className="antialiased">
+        <EdgeNavigation />
         {children}
       </body>
     </html>
