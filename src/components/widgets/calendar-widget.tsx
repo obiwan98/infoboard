@@ -1,6 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function isSameMonth(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+}
 
 function getMonthMatrix(date: Date) {
   const year = date.getFullYear();
@@ -24,14 +36,38 @@ type HolidayResponse = {
 };
 
 export function CalendarWidget() {
-  const today = new Date();
-  const [viewDate, setViewDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+  const [today, setToday] = useState(() => new Date());
+  const [viewDate, setViewDate] = useState(() => startOfMonth(new Date()));
+  const todayRef = useRef(today);
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
   const currentDay = today.getDate();
   const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
   const cells = getMonthMatrix(viewDate);
   const [holidays, setHolidays] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    todayRef.current = today;
+  }, [today]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const nextToday = new Date();
+      const previousToday = todayRef.current;
+
+      if (isSameDay(previousToday, nextToday)) {
+        return;
+      }
+
+      todayRef.current = nextToday;
+      setToday(nextToday);
+      setViewDate((prevViewDate) => (isSameMonth(prevViewDate, previousToday) ? startOfMonth(nextToday) : prevViewDate));
+    }, 60_000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
