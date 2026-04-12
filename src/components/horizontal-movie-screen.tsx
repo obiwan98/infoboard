@@ -294,6 +294,7 @@ export function HorizontalMovieScreen() {
     let stalledHeartbeatCount = 0;
     let lastHeartbeatTime: number | null = null;
     let lastHeartbeatVideoUrl: string | null = null;
+    let lastReportedVideoUrl: string | null = null;
     let player: YouTubePlayer | null = null;
 
     appendPlayerLog({
@@ -401,6 +402,7 @@ export function HorizontalMovieScreen() {
               appendPlayerLog({
                 event: "playback_start_requested",
                 details: { shuffledStart: SHUFFLE_PLAYLIST, ...getPlayerSnapshot(event.target) },
+                sendToServer: true,
                 screen: PLAYER_SCREEN,
               });
               if (SHUFFLE_PLAYLIST && event.target.playVideoAt) {
@@ -414,12 +416,28 @@ export function HorizontalMovieScreen() {
             stalledHeartbeatCount = 0;
             lastHeartbeatTime = null;
             lastHeartbeatVideoUrl = event.target.getVideoUrl?.() ?? null;
+            const snapshot = getPlayerSnapshot(event.target);
+
+            if (snapshot.videoUrl && snapshot.videoUrl !== lastReportedVideoUrl) {
+              lastReportedVideoUrl = snapshot.videoUrl;
+              appendPlayerLog({
+                event: "playback_target_selected",
+                details: {
+                  eventState: event.data ?? null,
+                  eventStateLabel: describePlayerState(event.data),
+                  ...snapshot,
+                },
+                sendToServer: true,
+                screen: PLAYER_SCREEN,
+              });
+            }
+
             appendPlayerLog({
               event: "state_change",
               details: {
                 eventState: event.data ?? null,
                 eventStateLabel: describePlayerState(event.data),
-                ...getPlayerSnapshot(event.target),
+                ...snapshot,
               },
               screen: PLAYER_SCREEN,
             });
