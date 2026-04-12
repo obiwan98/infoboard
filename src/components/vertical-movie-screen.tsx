@@ -24,12 +24,14 @@ function getWeatherGlyph(code: number): string {
 }
 
 const PLAYLIST_URLS = [
-  "https://www.youtube.com/playlist?list=PL0P7WZuP1QiMk9D-S4dMvHAmxDSrxC3b_",
+  "https://www.youtube.com/playlist?list=PL0P7WZuP1QiMk9D-1S4dMvHAmxDSrxC3b_",
 ];
 const PLAYER_SCREEN = "vertical";
 const HEARTBEAT_INTERVAL_MS = 30000;
 const STALL_HEARTBEAT_THRESHOLD = 2;
 const SHUFFLE_PLAYLIST = true;
+const PLAYBACK_COMPLETION_THRESHOLD_SEC = 5;
+const PLAYBACK_COMPLETION_THRESHOLD_RATIO = 0.98;
 
 type YouTubePlayer = {
   destroy: () => void;
@@ -96,9 +98,45 @@ function describePlayerState(state?: number | null) {
   }
 }
 
+function extractVideoDetails(videoUrl: string | null) {
+  if (!videoUrl) {
+    return {
+      directVideoUrl: null,
+      videoId: null,
+      videoUrl: null,
+    };
+  }
+
+  try {
+    const url = new URL(videoUrl);
+    const videoId = url.searchParams.get("v");
+
+    if (!videoId) {
+      return {
+        directVideoUrl: videoUrl,
+        videoId: null,
+        videoUrl,
+      };
+    }
+
+    return {
+      directVideoUrl: `https://www.youtube.com/watch?v=${videoId}`,
+      videoId,
+      videoUrl,
+    };
+  } catch {
+    return {
+      directVideoUrl: videoUrl,
+      videoId: null,
+      videoUrl,
+    };
+  }
+}
+
 function getPlayerSnapshot(target: YouTubePlayer) {
   const playlist = target.getPlaylist?.() ?? [];
   const playerState = target.getPlayerState?.() ?? null;
+  const videoDetails = extractVideoDetails(target.getVideoUrl?.() ?? null);
 
   return {
     currentTimeSec: target.getCurrentTime ? Math.round(target.getCurrentTime()) : null,
@@ -107,7 +145,34 @@ function getPlayerSnapshot(target: YouTubePlayer) {
     playerStateLabel: describePlayerState(playerState),
     playlistIndex: target.getPlaylistIndex?.() ?? null,
     playlistSize: playlist.length,
-    videoUrl: target.getVideoUrl?.() ?? null,
+    ...videoDetails,
+  };
+}
+
+function getPlaybackCompletionDetails(snapshot: {
+  currentTimeSec: number | null;
+  durationSec: number | null;
+}) {
+  const { currentTimeSec, durationSec } = snapshot;
+
+  if (currentTimeSec === null || durationSec === null || durationSec <= 0) {
+    return {
+      playbackNearEnd: null,
+      playbackProgressPercent: null,
+      remainingSec: null,
+    };
+  }
+
+  const remainingSec = Math.max(durationSec - currentTimeSec, 0);
+  const playbackProgressPercent = Math.round((currentTimeSec / durationSec) * 1000) / 10;
+  const playbackNearEnd =
+    remainingSec <= PLAYBACK_COMPLETION_THRESHOLD_SEC ||
+    currentTimeSec / durationSec >= PLAYBACK_COMPLETION_THRESHOLD_RATIO;
+
+  return {
+    playbackNearEnd,
+    playbackProgressPercent,
+    remainingSec,
   };
 }
 
@@ -314,6 +379,7 @@ export function VerticalMovieScreen() {
     let lastHeartbeatTime: number | null = null;
     let lastHeartbeatVideoUrl: string | null = null;
     let lastReportedVideoUrl: string | null = null;
+    let lastInterruptedVideoUrl: string | null = null;
     let player: YouTubePlayer | null = null;
 
     appendPlayerLog({
@@ -323,19 +389,36 @@ export function VerticalMovieScreen() {
     });
 
     const schedulePlaybackRecovery = (target: YouTubePlayer, delayMs: number, reason: string, details?: Record<string, unknown>) => {
+      const snapshot = getPlayerSnapshot(target);
+      const completion = getPlaybackCompletionDetails(snapshot);
+
       appendPlayerLog({
         event: "recovery_scheduled",
-        details: { delayMs, reason, ...details, ...getPlayerSnapshot(target) },
+        details: { delayMs, reason, ...details, ...snapshot, ...completion },
         level: "warn",
+        sendToServer: true,
         screen: PLAYER_SCREEN,
       });
 
+      if (snapshot.videoUrl && completion.playbackNearEnd === false && snapshot.videoUrl !== lastInterruptedVideoUrl) {
+        lastInterruptedVideoUrl = snapshot.videoUrl;
+        appendPlayerLog({
+          event: "playback_interrupted_skip",
+          details: { delayMs, reason, ...details, ...snapshot, ...completion },
+          level: "warn",
+          sendToServer: true,
+          screen: PLAYER_SCREEN,
+        });
+      }
+
       window.setTimeout(() => {
         if (disposed) return;
+        const nextSnapshot = getPlayerSnapshot(target);
         appendPlayerLog({
           event: "recovery_next_video",
-          details: { reason, ...getPlayerSnapshot(target) },
+          details: { reason, ...nextSnapshot, ...getPlaybackCompletionDetails(nextSnapshot) },
           level: "warn",
+          sendToServer: true,
           screen: PLAYER_SCREEN,
         });
         target.nextVideo?.();
@@ -441,12 +524,27 @@ export function VerticalMovieScreen() {
 
             if (snapshot.videoUrl && snapshot.videoUrl !== lastReportedVideoUrl) {
               lastReportedVideoUrl = snapshot.videoUrl;
+              lastInterruptedVideoUrl = null;
               appendPlayerLog({
                 event: "playback_target_selected",
                 details: {
                   eventState: event.data ?? null,
                   eventStateLabel: describePlayerState(event.data),
                   ...snapshot,
+                },
+                sendToServer: true,
+                screen: PLAYER_SCREEN,
+              });
+            }
+
+            if (event.data === 0) {
+              appendPlayerLog({
+                event: "playback_completed",
+                details: {
+                  eventState: event.data,
+                  eventStateLabel: describePlayerState(event.data),
+                  ...snapshot,
+                  ...getPlaybackCompletionDetails(snapshot),
                 },
                 sendToServer: true,
                 screen: PLAYER_SCREEN,
