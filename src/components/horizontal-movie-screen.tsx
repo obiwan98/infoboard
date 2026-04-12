@@ -28,6 +28,7 @@ const PLAYLIST_URLS = [
 ];
 const PLAYER_SCREEN = "horizontal";
 const HEARTBEAT_INTERVAL_MS = 30000;
+const PLAYBACK_PROGRESS_REPORT_INTERVAL = 4;
 const STALL_HEARTBEAT_THRESHOLD = 2;
 const SHUFFLE_PLAYLIST = true;
 const PLAYBACK_COMPLETION_THRESHOLD_SEC = 5;
@@ -368,6 +369,7 @@ export function HorizontalMovieScreen() {
 
     let disposed = false;
     let heartbeatTimer: number | null = null;
+    let heartbeatCount = 0;
     let stalledHeartbeatCount = 0;
     let lastHeartbeatTime: number | null = null;
     let lastHeartbeatVideoUrl: string | null = null;
@@ -450,6 +452,7 @@ export function HorizontalMovieScreen() {
             });
 
             heartbeatTimer = window.setInterval(() => {
+              heartbeatCount += 1;
               const snapshot = getPlayerSnapshot(event.target);
               const isSameVideo = snapshot.videoUrl === lastHeartbeatVideoUrl;
               const isProgressStalled =
@@ -476,6 +479,19 @@ export function HorizontalMovieScreen() {
                 },
                 screen: PLAYER_SCREEN,
               });
+
+              if (snapshot.playerState === 1 && heartbeatCount % PLAYBACK_PROGRESS_REPORT_INTERVAL === 0) {
+                appendPlayerLog({
+                  event: "playback_progress",
+                  details: {
+                    heartbeatCount,
+                    ...snapshot,
+                    ...getPlaybackCompletionDetails(snapshot),
+                  },
+                  sendToServer: true,
+                  screen: PLAYER_SCREEN,
+                });
+              }
 
               if (stalledHeartbeatCount >= STALL_HEARTBEAT_THRESHOLD) {
                 appendPlayerLog({
@@ -506,6 +522,7 @@ export function HorizontalMovieScreen() {
             }, 200);
           },
           onStateChange: (event) => {
+            heartbeatCount = 0;
             stalledHeartbeatCount = 0;
             lastHeartbeatTime = null;
             lastHeartbeatVideoUrl = event.target.getVideoUrl?.() ?? null;
