@@ -488,10 +488,6 @@ export function HorizontalMovieScreen() {
                 sendToServer: true,
                 screen: PLAYER_SCREEN,
               });
-              if (SHUFFLE_PLAYLIST && event.target.playVideoAt) {
-                event.target.playVideoAt(0);
-                return;
-              }
               event.target.playVideo();
             }, 200);
           },
