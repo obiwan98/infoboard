@@ -24,7 +24,7 @@ function getWeatherGlyph(code: number): string {
 }
 
 const PLAYLIST_URLS = [
-  "https://www.youtube.com/playlist?list=PL0P7WZuP1QiMk9D-1S4dMvHAmxDSrxC3b_",
+  "https://www.youtube.com/playlist?list=PL0P7WZuP1QiMk9D-S4dMvHAmxDSrxC3b_",
 ];
 const PLAYER_SCREEN = "vertical";
 const HEARTBEAT_INTERVAL_MS = 30000;
