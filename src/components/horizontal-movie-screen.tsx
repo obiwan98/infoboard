@@ -98,6 +98,10 @@ function describePlayerState(state?: number | null) {
   }
 }
 
+function shouldSendStateChangeToServer(state?: number | null) {
+  return state === 0 || state === 1 || state === 2 || state === 3;
+}
+
 function extractVideoDetails(videoUrl: string | null) {
   if (!videoUrl) {
     return {
@@ -174,6 +178,14 @@ function getPlaybackCompletionDetails(snapshot: {
     playbackProgressPercent,
     remainingSec,
   };
+}
+
+function getPlaybackTargetKey(snapshot: {
+  directVideoUrl: string | null;
+  videoId: string | null;
+  videoUrl: string | null;
+}) {
+  return snapshot.videoId ?? snapshot.directVideoUrl ?? snapshot.videoUrl;
 }
 
 function extractPlaylistId(input: string): string | null {
@@ -359,8 +371,8 @@ export function HorizontalMovieScreen() {
     let stalledHeartbeatCount = 0;
     let lastHeartbeatTime: number | null = null;
     let lastHeartbeatVideoUrl: string | null = null;
-    let lastReportedVideoUrl: string | null = null;
-    let lastInterruptedVideoUrl: string | null = null;
+    let lastReportedTargetKey: string | null = null;
+    let lastInterruptedTargetKey: string | null = null;
     let player: YouTubePlayer | null = null;
 
     appendPlayerLog({
@@ -381,8 +393,10 @@ export function HorizontalMovieScreen() {
         screen: PLAYER_SCREEN,
       });
 
-      if (snapshot.videoUrl && completion.playbackNearEnd === false && snapshot.videoUrl !== lastInterruptedVideoUrl) {
-        lastInterruptedVideoUrl = snapshot.videoUrl;
+      const targetKey = getPlaybackTargetKey(snapshot);
+
+      if (targetKey && completion.playbackNearEnd === false && targetKey !== lastInterruptedTargetKey) {
+        lastInterruptedTargetKey = targetKey;
         appendPlayerLog({
           event: "playback_interrupted_skip",
           details: { delayMs, reason, ...details, ...snapshot, ...completion },
@@ -496,10 +510,11 @@ export function HorizontalMovieScreen() {
             lastHeartbeatTime = null;
             lastHeartbeatVideoUrl = event.target.getVideoUrl?.() ?? null;
             const snapshot = getPlayerSnapshot(event.target);
+            const targetKey = getPlaybackTargetKey(snapshot);
 
-            if (snapshot.videoUrl && snapshot.videoUrl !== lastReportedVideoUrl) {
-              lastReportedVideoUrl = snapshot.videoUrl;
-              lastInterruptedVideoUrl = null;
+            if (targetKey && targetKey !== lastReportedTargetKey) {
+              lastReportedTargetKey = targetKey;
+              lastInterruptedTargetKey = null;
               appendPlayerLog({
                 event: "playback_target_selected",
                 details: {
@@ -533,6 +548,7 @@ export function HorizontalMovieScreen() {
                 eventStateLabel: describePlayerState(event.data),
                 ...snapshot,
               },
+              sendToServer: shouldSendStateChangeToServer(event.data),
               screen: PLAYER_SCREEN,
             });
           },
