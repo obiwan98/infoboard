@@ -28,11 +28,8 @@ const PLAYLIST_URLS = [
 ];
 const PLAYER_SCREEN = "horizontal";
 const HEARTBEAT_INTERVAL_MS = 30000;
-const PLAYBACK_PROGRESS_REPORT_INTERVAL = 4;
 const STALL_HEARTBEAT_THRESHOLD = 2;
 const SHUFFLE_PLAYLIST = true;
-const PLAYBACK_COMPLETION_THRESHOLD_SEC = 5;
-const PLAYBACK_COMPLETION_THRESHOLD_RATIO = 0.98;
 
 type YouTubePlayer = {
   destroy: () => void;
@@ -99,49 +96,9 @@ function describePlayerState(state?: number | null) {
   }
 }
 
-function shouldSendStateChangeToServer(state?: number | null) {
-  return state === 0 || state === 1 || state === 2 || state === 3;
-}
-
-function extractVideoDetails(videoUrl: string | null) {
-  if (!videoUrl) {
-    return {
-      directVideoUrl: null,
-      videoId: null,
-      videoUrl: null,
-    };
-  }
-
-  try {
-    const url = new URL(videoUrl);
-    const videoId = url.searchParams.get("v");
-
-    if (!videoId) {
-      return {
-        directVideoUrl: videoUrl,
-        videoId: null,
-        videoUrl,
-      };
-    }
-
-    return {
-      directVideoUrl: `https://www.youtube.com/watch?v=${videoId}`,
-      videoId,
-      videoUrl,
-    };
-  } catch {
-    return {
-      directVideoUrl: videoUrl,
-      videoId: null,
-      videoUrl,
-    };
-  }
-}
-
 function getPlayerSnapshot(target: YouTubePlayer) {
   const playlist = target.getPlaylist?.() ?? [];
   const playerState = target.getPlayerState?.() ?? null;
-  const videoDetails = extractVideoDetails(target.getVideoUrl?.() ?? null);
 
   return {
     currentTimeSec: target.getCurrentTime ? Math.round(target.getCurrentTime()) : null,
@@ -150,43 +107,8 @@ function getPlayerSnapshot(target: YouTubePlayer) {
     playerStateLabel: describePlayerState(playerState),
     playlistIndex: target.getPlaylistIndex?.() ?? null,
     playlistSize: playlist.length,
-    ...videoDetails,
+    videoUrl: target.getVideoUrl?.() ?? null,
   };
-}
-
-function getPlaybackCompletionDetails(snapshot: {
-  currentTimeSec: number | null;
-  durationSec: number | null;
-}) {
-  const { currentTimeSec, durationSec } = snapshot;
-
-  if (currentTimeSec === null || durationSec === null || durationSec <= 0) {
-    return {
-      playbackNearEnd: null,
-      playbackProgressPercent: null,
-      remainingSec: null,
-    };
-  }
-
-  const remainingSec = Math.max(durationSec - currentTimeSec, 0);
-  const playbackProgressPercent = Math.round((currentTimeSec / durationSec) * 1000) / 10;
-  const playbackNearEnd =
-    remainingSec <= PLAYBACK_COMPLETION_THRESHOLD_SEC ||
-    currentTimeSec / durationSec >= PLAYBACK_COMPLETION_THRESHOLD_RATIO;
-
-  return {
-    playbackNearEnd,
-    playbackProgressPercent,
-    remainingSec,
-  };
-}
-
-function getPlaybackTargetKey(snapshot: {
-  directVideoUrl: string | null;
-  videoId: string | null;
-  videoUrl: string | null;
-}) {
-  return snapshot.videoId ?? snapshot.directVideoUrl ?? snapshot.videoUrl;
 }
 
 function extractPlaylistId(input: string): string | null {
@@ -369,12 +291,9 @@ export function HorizontalMovieScreen() {
 
     let disposed = false;
     let heartbeatTimer: number | null = null;
-    let heartbeatCount = 0;
     let stalledHeartbeatCount = 0;
     let lastHeartbeatTime: number | null = null;
     let lastHeartbeatVideoUrl: string | null = null;
-    let lastReportedTargetKey: string | null = null;
-    let lastInterruptedTargetKey: string | null = null;
     let player: YouTubePlayer | null = null;
 
     appendPlayerLog({
@@ -384,38 +303,19 @@ export function HorizontalMovieScreen() {
     });
 
     const schedulePlaybackRecovery = (target: YouTubePlayer, delayMs: number, reason: string, details?: Record<string, unknown>) => {
-      const snapshot = getPlayerSnapshot(target);
-      const completion = getPlaybackCompletionDetails(snapshot);
-
       appendPlayerLog({
         event: "recovery_scheduled",
-        details: { delayMs, reason, ...details, ...snapshot, ...completion },
+        details: { delayMs, reason, ...details, ...getPlayerSnapshot(target) },
         level: "warn",
-        sendToServer: true,
         screen: PLAYER_SCREEN,
       });
 
-      const targetKey = getPlaybackTargetKey(snapshot);
-
-      if (targetKey && completion.playbackNearEnd === false && targetKey !== lastInterruptedTargetKey) {
-        lastInterruptedTargetKey = targetKey;
-        appendPlayerLog({
-          event: "playback_interrupted_skip",
-          details: { delayMs, reason, ...details, ...snapshot, ...completion },
-          level: "warn",
-          sendToServer: true,
-          screen: PLAYER_SCREEN,
-        });
-      }
-
       window.setTimeout(() => {
         if (disposed) return;
-        const nextSnapshot = getPlayerSnapshot(target);
         appendPlayerLog({
           event: "recovery_next_video",
-          details: { reason, ...nextSnapshot, ...getPlaybackCompletionDetails(nextSnapshot) },
+          details: { reason, ...getPlayerSnapshot(target) },
           level: "warn",
-          sendToServer: true,
           screen: PLAYER_SCREEN,
         });
         target.nextVideo?.();
@@ -452,7 +352,6 @@ export function HorizontalMovieScreen() {
             });
 
             heartbeatTimer = window.setInterval(() => {
-              heartbeatCount += 1;
               const snapshot = getPlayerSnapshot(event.target);
               const isSameVideo = snapshot.videoUrl === lastHeartbeatVideoUrl;
               const isProgressStalled =
@@ -480,19 +379,6 @@ export function HorizontalMovieScreen() {
                 screen: PLAYER_SCREEN,
               });
 
-              if (snapshot.playerState === 1 && heartbeatCount % PLAYBACK_PROGRESS_REPORT_INTERVAL === 0) {
-                appendPlayerLog({
-                  event: "playback_progress",
-                  details: {
-                    heartbeatCount,
-                    ...snapshot,
-                    ...getPlaybackCompletionDetails(snapshot),
-                  },
-                  sendToServer: true,
-                  screen: PLAYER_SCREEN,
-                });
-              }
-
               if (stalledHeartbeatCount >= STALL_HEARTBEAT_THRESHOLD) {
                 appendPlayerLog({
                   event: "stalled_detected",
@@ -515,57 +401,22 @@ export function HorizontalMovieScreen() {
               appendPlayerLog({
                 event: "playback_start_requested",
                 details: { shuffledStart: SHUFFLE_PLAYLIST, ...getPlayerSnapshot(event.target) },
-                sendToServer: true,
                 screen: PLAYER_SCREEN,
               });
               event.target.playVideo();
             }, 200);
           },
           onStateChange: (event) => {
-            heartbeatCount = 0;
             stalledHeartbeatCount = 0;
             lastHeartbeatTime = null;
             lastHeartbeatVideoUrl = event.target.getVideoUrl?.() ?? null;
-            const snapshot = getPlayerSnapshot(event.target);
-            const targetKey = getPlaybackTargetKey(snapshot);
-
-            if (targetKey && targetKey !== lastReportedTargetKey) {
-              lastReportedTargetKey = targetKey;
-              lastInterruptedTargetKey = null;
-              appendPlayerLog({
-                event: "playback_target_selected",
-                details: {
-                  eventState: event.data ?? null,
-                  eventStateLabel: describePlayerState(event.data),
-                  ...snapshot,
-                },
-                sendToServer: true,
-                screen: PLAYER_SCREEN,
-              });
-            }
-
-            if (event.data === 0) {
-              appendPlayerLog({
-                event: "playback_completed",
-                details: {
-                  eventState: event.data,
-                  eventStateLabel: describePlayerState(event.data),
-                  ...snapshot,
-                  ...getPlaybackCompletionDetails(snapshot),
-                },
-                sendToServer: true,
-                screen: PLAYER_SCREEN,
-              });
-            }
-
             appendPlayerLog({
               event: "state_change",
               details: {
                 eventState: event.data ?? null,
                 eventStateLabel: describePlayerState(event.data),
-                ...snapshot,
+                ...getPlayerSnapshot(event.target),
               },
-              sendToServer: shouldSendStateChangeToServer(event.data),
               screen: PLAYER_SCREEN,
             });
           },

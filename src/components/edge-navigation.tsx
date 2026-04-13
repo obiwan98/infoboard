@@ -11,6 +11,7 @@ type NavigationItem = {
 
 const NAV_ITEMS: NavigationItem[] = [
   { href: "/verticalMovie", label: "vertical", shortLabel: "VM" },
+  { href: "/verticalMovieLight", label: "vlight", shortLabel: "VL" },
   { href: "/horizontalMovie", label: "horizon", shortLabel: "HM" },
   { href: "/dashboard", label: "dashboard", shortLabel: "DB" },
   { href: "/playerLogs", label: "log", shortLabel: "LOG" },
@@ -33,7 +34,7 @@ export function EdgeNavigation() {
         >
           <div>
             <p className="text-[11px] uppercase tracking-[0.32em] text-sky-200/55">Pages</p>
-            <p className="mt-2 text-sm leading-6 text-slate-300/80">자주 쓰는 화면을 빠르게 전환합니다.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-300/80">Switch between the main display screens.</p>
           </div>
 
           <div className="mt-6 flex flex-col gap-2">
@@ -69,7 +70,7 @@ export function EdgeNavigation() {
             })}
           </div>
 
-          <p className="mt-6 text-[11px] leading-5 text-slate-400/72">왼쪽 가장자리에 마우스를 올리면 메뉴가 열립니다.</p>
+          <p className="mt-6 text-[11px] leading-5 text-slate-400/72">Hover the left edge to open the menu.</p>
         </nav>
       </div>
     </aside>
