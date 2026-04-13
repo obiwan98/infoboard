@@ -90,19 +90,21 @@ export function WeatherWidget() {
   const visual = useMemo(() => getWeatherVisual(data?.weatherCode ?? 0), [data?.weatherCode]);
 
   return (
-    <div className="mm-module h-full rounded-md p-5 md:p-6">
+    <div className="mm-module h-full rounded-md p-4 md:p-5">
       {!data && !error && <p className="mm-normal mt-6 text-lg">Loading weather...</p>}
       {error && <p className="mt-6 text-lg text-red-300">{error}</p>}
       {data && (
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col items-center justify-center text-center">
-            <p className="mm-normal text-lg">{data.city}</p>
-            <p className="mm-bright mt-2 text-6xl font-light tracking-tight">{Math.round(data.temperature)}&deg;</p>
-            <p className="mm-normal mt-2 text-xl">{description}</p>
+            <p className="mm-normal text-sm md:text-base">{data.city}</p>
+            <p className="mm-bright mt-1 text-[3rem] font-light leading-none tracking-[-0.04em] md:text-[3.8rem]">
+              {Math.round(data.temperature)}&deg;
+            </p>
+            <p className="mm-normal mt-2 text-base leading-snug md:text-lg">{description}</p>
           </div>
-          <div className="flex min-h-[150px] flex-col items-center justify-center text-center">
-            <div className="relative h-24 w-24 md:h-28 md:w-28">
-              <Image src={visual.src} alt={visual.alt} fill sizes="112px" className="object-contain opacity-90" />
+          <div className="flex min-h-[136px] flex-col items-center justify-center text-center">
+            <div className="relative h-20 w-20 md:h-24 md:w-24">
+              <Image src={visual.src} alt={visual.alt} fill sizes="96px" className="object-contain opacity-90" />
             </div>
             <div className="mt-2">
               <p className="mm-dim text-sm">Wind {Math.round(data.windSpeed)} km/h</p>

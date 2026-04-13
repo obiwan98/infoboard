@@ -13,7 +13,6 @@ export function ClockWidget() {
   const time = new Intl.DateTimeFormat("ko-KR", {
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit",
     hour12: false,
   }).format(now);
 
@@ -25,10 +24,16 @@ export function ClockWidget() {
   }).format(now);
 
   return (
-    <div className="mm-module flex h-full flex-col rounded-md p-5 md:p-6">
+    <div className="mm-module flex h-full flex-col rounded-md p-4 md:p-5">
       <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <p className="mm-bright text-6xl font-light tracking-tight md:text-7xl">{time}</p>
-        <p className="mm-normal mt-3 text-lg md:text-2xl">{date}</p>
+        <div className="flex w-full justify-center overflow-hidden">
+          <p
+            className="mm-bright whitespace-nowrap text-[4.7rem] font-light leading-none tracking-[-0.06em] md:text-[6.6rem]"
+          >
+            {time}
+          </p>
+        </div>
+        <p className="mm-normal mt-2 text-sm leading-snug md:text-lg">{date}</p>
       </div>
     </div>
   );

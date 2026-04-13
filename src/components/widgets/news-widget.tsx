@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+
 import { useScrollVisibility } from "@/hooks/use-scroll-visibility";
 
 type NewsItem = {
@@ -74,36 +74,38 @@ export function NewsWidget() {
   }, [items]);
 
   return (
-    <div className="mm-module flex h-full min-h-0 flex-col rounded-md p-5 md:p-6">
-      <div ref={listRef} className="smart-scroll min-h-0 flex-1 overflow-y-auto pr-1">
+    <div className="mm-module flex h-full min-h-0 flex-col rounded-md p-4 md:p-5">
+      <div ref={listRef} className="smart-scroll min-h-0 flex-1 overflow-y-auto">
         {error && <p className="mt-1 text-sm text-red-300">{error}</p>}
         {!error && visibleItems.length === 0 && <p className="mm-normal mt-1 text-sm">Loading headlines...</p>}
-        <ul className="divide-y divide-[color:var(--mm-line)]">
-          {visibleItems.map((item) => (
-            <li key={`${item.link}-${item.pubDate}`} className="flex h-14 flex-col justify-center py-1">
-              <a
-                href={item.link}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="mm-normal block truncate text-sm transition-colors hover:text-white"
-                title={item.title}
-              >
-                {item.title}
-              </a>
-              <p className="mm-dim mt-1 text-[11px]">
-                {item.source}{" "}
-                {item.pubDate
-                  ? `· ${new Intl.DateTimeFormat("ko-KR", {
-                      month: "2-digit",
-                      day: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }).format(new Date(item.pubDate))}`
-                  : ""}
-              </p>
-            </li>
-          ))}
-        </ul>
+        {!error && visibleItems.length > 0 && (
+          <ul className="flex min-h-full flex-col justify-center divide-y divide-[color:var(--mm-line)]">
+            {visibleItems.map((item) => (
+              <li key={`${item.link}-${item.pubDate}`} className="flex flex-1 flex-col justify-center py-1.5">
+                <a
+                  href={item.link}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="mm-normal block truncate text-sm leading-snug transition-colors hover:text-white"
+                  title={item.title}
+                >
+                  {item.title}
+                </a>
+                <p className="mm-dim mt-1 text-[11px]">
+                  {item.source}{" "}
+                  {item.pubDate
+                    ? `· ${new Intl.DateTimeFormat("ko-KR", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }).format(new Date(item.pubDate))}`
+                    : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
