@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 type CalendarEventItem = {
+  allDay?: boolean;
   title: string;
   start: string;
   end: string;
@@ -58,7 +59,7 @@ export function AlertOverlay() {
               ...event,
               startDate: new Date(event.start),
             }))
-            .filter((event) => event.startDate.getTime() >= now.getTime())
+            .filter((event) => !event.allDay && event.startDate.getTime() >= now.getTime())
             .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())[0];
 
           if (upcoming) {
