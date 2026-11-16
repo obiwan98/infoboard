@@ -11,9 +11,11 @@ const CHECK_INTERVAL_MS = 30 * 1000;
 const PROBE_TIMEOUT_MS = 10 * 1000;
 
 function readReloadIntervalMs(): number | null {
-  const raw = new URLSearchParams(window.location.search).get("reloadHours");
-  const hours = raw === null ? DEFAULT_RELOAD_HOURS : Number(raw);
-  if (!Number.isFinite(hours) || hours <= 0) return null;
+  const raw = new URLSearchParams(window.location.search).get("reloadHours")?.trim();
+  const parsed = raw ? Number(raw) : Number.NaN;
+  // Missing, empty or non-numeric values fall back to the default; only an explicit 0 (or less) disables.
+  const hours = Number.isFinite(parsed) ? parsed : DEFAULT_RELOAD_HOURS;
+  if (hours <= 0) return null;
   return Math.max(hours * 60 * 60 * 1000, MIN_RELOAD_MS);
 }
 
