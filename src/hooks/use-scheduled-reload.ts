@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { appendPlayerLog } from "@/lib/player-log";
 
 /** Default reload period. Override per device with `?reloadHours=N` (`0` disables). */
-const DEFAULT_RELOAD_HOURS = 4;
+const DEFAULT_RELOAD_HOURS = 2;
 const MIN_RELOAD_MS = 60 * 1000;
 const CHECK_INTERVAL_MS = 30 * 1000;
 const PROBE_TIMEOUT_MS = 10 * 1000;
